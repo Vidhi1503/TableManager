@@ -1,0 +1,163 @@
+<!-- Dropdown ke bahar click karne par band -->
+@if (openMenu()) {
+  <div class="menu-backdrop" (click)="openMenu.set(null)"></div>
+}
+
+<div class="head">
+  <div>
+    <h2 class="title">Error Table</h2>
+    <p class="subtitle">{{ total() | number }} errors recorded</p>
+  </div>
+
+  <div class="head-actions">
+    <button type="button" class="btn-export" (click)="exportCsv()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3v12" /><path d="M7 11l5 5 5-5" /><path d="M5 21h14" />
+      </svg>
+      Export
+    </button>
+
+    <button type="button" class="btn-refresh" [disabled]="loading()" (click)="refresh()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12a9 9 0 1 1-3-6.7" /><path d="M21 4v5h-5" />
+      </svg>
+      Refresh
+    </button>
+  </div>
+</div>
+
+<div class="toolbar">
+  <div class="search-box">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" />
+    </svg>
+    <input
+      type="text"
+      placeholder="Search by Error ID or Client"
+      [ngModel]="search()"
+      (ngModelChange)="onSearch($event)"
+    />
+  </div>
+
+  <div class="filters">
+    @for (f of filterDefs(); track f.key) {
+      <div class="dd" [class.open]="openMenu() === f.key">
+        <button
+          type="button"
+          class="dd-btn"
+          [class.active]="isActive(f)"
+          (click)="toggleMenu(f.key)">
+          <span class="dd-text">{{ textFor(f) }}</span>
+          <svg class="dd-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
+
+        @if (openMenu() === f.key) {
+          <div class="dd-menu">
+            @for (o of f.options; track o.value) {
+              <button
+                type="button"
+                class="dd-item"
+                [class.selected]="o.value === values()[f.key]"
+                (click)="pick(f.key, o.value)">
+                {{ o.label }}
+              </button>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <label class="date-field" [class.active]="fromDate()">
+      <span>From</span>
+      <input type="date" [ngModel]="fromDate()" (ngModelChange)="setDate('from', $event)" />
+    </label>
+
+    <label class="date-field" [class.active]="toDate()">
+      <span>To</span>
+      <input type="date" [ngModel]="toDate()" (ngModelChange)="setDate('to', $event)" />
+    </label>
+
+    @if (hasFilters()) {
+      <button type="button" class="btn-clear" (click)="clearFilters()">Clear</button>
+    }
+  </div>
+</div>
+
+@if (loading()) { <p class="msg">Loading...</p> }
+@if (errorMsg()) { <p class="msg error">{{ errorMsg() }}</p> }
+@if (!loading() && !errorMsg() && rows().length === 0) {
+  <p class="msg">Koi error nahi mila</p>
+}
+
+<div class="grid-card">
+  <ag-grid-angular
+    class="ag-theme-quartz custom-grid"
+    theme="legacy"
+    domLayout="autoHeight"
+    [rowHeight]="rowHeight"
+    [headerHeight]="headerHeight"
+    [tooltipShowDelay]="400"
+    [rowData]="rows()"
+    [columnDefs]="columnDefs"
+    [defaultColDef]="defaultColDef"
+    [gridOptions]="gridOptions"
+    [getRowId]="getRowId"
+    (gridReady)="onGridReady($event)"
+    (gridSizeChanged)="onGridSizeChanged()"
+    (cellClicked)="onCellClicked($event)">
+  </ag-grid-angular>
+</div>
+
+<!-- Page badalne ki bar -->
+<div class="pager">
+  <span class="pager-info">{{ from() | number }}–{{ to() | number }} of {{ total() | number }}</span>
+
+  <div class="pager-btns">
+    <button type="button" class="pg-btn" [disabled]="page() === 1 || loading()" (click)="goTo(page() - 1)">
+      ‹ Prev
+    </button>
+    <span class="pg-now">Page {{ page() | number }} / {{ pages() | number }}</span>
+    <button type="button" class="pg-btn" [disabled]="page() === pages() || loading()" (click)="goTo(page() + 1)">
+      Next ›
+    </button>
+  </div>
+</div>
+
+@if (selected(); as e) {
+  <div class="overlay" (click)="closeSheet()"></div>
+
+  <aside class="sheet">
+    <div class="sheet-head">
+      <h3>Error Details</h3>
+      <button type="button" class="icon-btn" (click)="closeSheet()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="sheet-body">
+      <div class="row"><span>Error ID</span><b>{{ e.eid }}</b></div>
+      <div class="row"><span>Client</span><b>{{ e.cname || '—' }}</b></div>
+      <div class="row"><span>Database</span><b>{{ e.dbname }}</b></div>
+      <div class="row"><span>Software ID</span><b>{{ e.swid || '—' }}</b></div>
+      <div class="row"><span>Date and time</span><b>{{ fmt(e.dtime) }}</b></div>
+      <div class="row"><span>Status</span><b>{{ statusLabel(e.erstatus) }}</b></div>
+      <div class="row"><span>Link ID</span><b>{{ e.linkid ?? '—' }}</b></div>
+      <div class="row col"><span>Error response</span><b class="long">{{ e.erresponse || '—' }}</b></div>
+      <div class="row col"><span>Error query</span><b class="long code">{{ e.erquery || '—' }}</b></div>
+    </div>
+
+    <div class="sheet-foot">
+      <button type="button" class="btn-outline" (click)="closeSheet()">Close</button>
+      <button type="button" class="btn-primary" [disabled]="e.erstatus === 1" (click)="markResolved()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12l5 5 9-10" />
+        </svg>
+        Mark as Resolved
+      </button>
+    </div>
+  </aside>
+}
