@@ -1,0 +1,53 @@
+<header class="topbar">
+  <button mat-icon-button (click)="toggleMenu()">
+    <mat-icon>menu</mat-icon>
+  </button>
+  <h1 class="brand">Table Manager</h1>
+  <span class="spacer"></span>
+
+  <button mat-icon-button (click)="toggleTheme()">
+    <mat-icon>{{ dark() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+  </button>
+  <button mat-icon-button><mat-icon>notifications</mat-icon></button>
+
+  <div class="avatar" [matMenuTriggerFor]="userMenu">V</div>
+  <mat-menu #userMenu="matMenu">
+    <button mat-menu-item><mat-icon>person</mat-icon> Profile</button>
+    <button mat-menu-item><mat-icon>lock</mat-icon> Change Password</button>
+    <button mat-menu-item class="danger" (click)="logout()">
+      <mat-icon>logout</mat-icon> Logout
+    </button>
+  </mat-menu>
+</header>
+
+<div class="body">
+  <!-- Mobile par drawer ke peeche ka dhundhla parda -->
+  @if (mobile() && mobileOpen()) {
+    <div class="backdrop" (click)="closeMenu()"></div>
+  }
+
+  <aside
+    class="sidebar"
+    [class.collapsed]="collapsed()"
+    [class.mobile]="mobile()"
+    [class.open]="mobileOpen()"
+  >
+    <!-- <a routerLink="/dashboard" routerLinkActive="active" (click)="closeMenu()">
+      <mat-icon>dashboard</mat-icon><span>Dashboard</span>
+    </a> -->
+    <small>Tables</small>
+    <a routerLink="/errors" routerLinkActive="active" (click)="closeMenu()">
+      <mat-icon>warning_amber</mat-icon><span>Error Table</span>
+    </a>
+    <!-- <a routerLink="/customers" routerLinkActive="active" (click)="closeMenu()">
+      <mat-icon>person_outline</mat-icon><span>Customer Table</span>
+    </a> -->
+    <a class="logout" (click)="logout()">
+      <mat-icon>logout</mat-icon><span>Logout</span>
+    </a>
+  </aside>
+
+  <main class="content">
+    <router-outlet />
+  </main>
+</div>
